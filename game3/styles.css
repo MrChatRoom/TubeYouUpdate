@@ -1,0 +1,38 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  background: black;
+}
+
+#hud {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+#batteryWrap {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  width: 140px;
+  height: 10px;
+  border: 1px solid white;
+}
+
+#batteryFill {
+  width: 100%;
+  height: 100%;
+  background: white;
+}
+
+#scanBar {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 6px;
+  border: 1px solid white;
+  opacity: 0;
+}

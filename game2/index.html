@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1, minimum-scale=1">
+<style>
+html,body{margin:0;padding:0;overflow:hidden;background:#008080;font-family:Tahoma,Arial,sans-serif;-webkit-user-select:none;touch-action:none;}
+canvas{display:block;background:#000;}
+#joystick{position:absolute;bottom:50px;left:50px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,0.2);touch-action:none;z-index:5;}
+#stick{position:absolute;top:35px;left:35px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.5);}
+.menu,#settings,#gameOver{position:absolute;top:0;left:0;width:100%;height:100%;background:#c0c0c0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;overflow:hidden;}
+.menu h1,.menu button,.menu label,.menu select,.menu input{margin:10px;font-family:Tahoma,sans-serif;}
+.menu button{padding:10px 20px;border:none;background:#008080;color:#fff;font-weight:bold;cursor:pointer;}
+.menu button:hover{background:#006666;}
+#scoreDisplay{position:absolute;top:10px;left:50%;transform:translateX(-50%);color:#fff;font-size:24px;font-weight:bold;text-shadow:1px 1px #000;z-index:6;}
+#settingsContent{overflow-y:auto;width:80%;max-height:80%;display:flex;flex-direction:column;align-items:flex-start;padding:10px;}
+#settingsContent label{width:100%;display:flex;justify-content:space-between;}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="joystick"><div id="stick"></div></div>
+
+<div class="menu" id="mainMenu">
+<h1>Snake XP Ultra</h1>
+<button id="startGame">Start Game</button>
+<button id="openSettings">Settings</button>
+</div>
+
+<div class="menu" id="settings" style="display:none;">
+<h1>Settings</h1>
+<div id="settingsContent">
+<label>Joystick Size: <input type="range" id="joystickSize" min="50" max="150" value="100"></label>
+<label>Snake Color: <input type="color" id="snakeColor" value="#00ff00"></label>
+<label>Snake Shape: 
+<select id="snakeShape">
+<option value="square">Square</option>
+<option value="circle">Circle</option>
+<option value="rounded">Rounded</option>
+<option value="4d">4D</option>
+</select>
+</label>
+<label>Snake Speed: <input type="range" id="snakeSpeed" min="5" max="20" value="10"></label>
+<label>Particle Count: <input type="range" id="particleCount" min="0" max="500" value="100"></label>
+<label>Background Color: <input type="color" id="bgColor" value="#000000"></label>
+<label>Fruit Size: <input type="range" id="fruitSize" min="5" max="30" value="20"></label>
+<label>Rare Fruit Chance: <input type="range" id="rareChance" min="0" max="50" value="10"></label>
+<label>Trail Opacity: <input type="range" id="trailOpacity" min="0" max="1" step="0.05" value="0.8"></label>
+<label>Score Font Size: <input type="range" id="scoreFontSize" min="10" max="50" value="24"></label>
+<label>Joystick Opacity: <input type="range" id="joystickOpacity" min="0" max="1" step="0.05" value="0.2"></label>
+<label>Stick Opacity: <input type="range" id="stickOpacity" min="0" max="1" step="0.05" value="0.5"></label>
+<label>Snake Glow: <input type="range" id="snakeGlow" min="0" max="20" value="5"></label>
+<label>Fruit Glow: <input type="range" id="fruitGlow" min="0" max="20" value="5"></label>
+<label>Particle Speed: <input type="range" id="particleSpeed" min="0" max="20" value="5"></label>
+<label>Animation Speed: <input type="range" id="animSpeed" min="1" max="20" value="10"></label>
+<label>Tail Length Multiplier: <input type="range" id="tailMult" min="1" max="5" value="1"></label>
+<button id="backMenu">Back</button>
+</div>
+</div>
+
+<div class="menu" id="gameOver" style="display:none;">
+<h1 id="loseText">You Lose!</h1>
+<p id="finalScore"></p>
+<button id="retry">Retry</button>
+<button id="goMenu">Main Menu</button>
+</div>
+
+<div id="scoreDisplay">Score: 0</div>
+
+<script>
+const canvas=document.getElementById('game');
+const ctx=canvas.getContext('2d');
+let w=canvas.width=window.innerWidth;
+let h=canvas.height=window.innerHeight;
+window.addEventListener('resize',()=>{w=canvas.width=window.innerWidth;h=canvas.height=window.innerHeight;});
+
+const grid=20;
+let snake=[];
+let dir={x:1,y:0};
+let nextDir={x:1,y:0};
+let speed=10;
+let score=0;
+let fruits=[];
+let frame=0;
+let gameRunning=false;
+let snakeColor="#00ff00";
+let snakeShape="square";
+let joystickSize=100;
+let bgColor="#000000";
+let fruitSize=grid;
+let rareChance=10;
+let trailOpacity=0.8;
+let particleCount=100;
+let particles=[];
+let snakeGlow=5;
+let fruitGlow=5;
+let particleSpeed=5;
+let animSpeed=10;
+let tailMult=1;
+
+const mainMenu=document.getElementById('mainMenu');
+const settingsMenu=document.getElementById('settings');
+const gameOverMenu=document.getElementById('gameOver');
+const scoreDisplay=document.getElementById('scoreDisplay');
+const finalScore=document.getElementById('finalScore');
+const joystick=document.getElementById('joystick');
+const stick=document.getElementById('stick');
+
+function resetGame(){
+snake=[{x:10,y:10}];
+dir={x:1,y:0};
+nextDir={x:1,y:0};
+score=0;
+fruits=[];
+spawnFruit();
+spawnFruit();
+spawnFruit();
+frame=0;
+gameRunning=true;
+particles=[];
+for(let i=0;i<particleCount;i++){particles.push({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-0.5)*particleSpeed,vy:(Math.random()-0.5)*particleSpeed,size:Math.random()*3+1,color:`rgba(255,255,255,${Math.random()})`});}
+scoreDisplay.style.display='block';
+scoreDisplay.style.fontSize=document.getElementById('scoreFontSize').value+'px';
+canvas.style.background=bgColor;
+}
+
+function spawnFruit(){
+let type=Math.random()*100<rareChance?2:Math.random()*100<25?1:0;
+let x=Math.floor(Math.random()*(w/grid));
+let y=Math.floor(Math.random()*(h/grid));
+fruits.push({x,y,type});
+}
+
+function drawSnakePart(s,index){
+ctx.shadowColor=snakeColor;
+ctx.shadowBlur=snakeGlow;
+ctx.fillStyle=snakeColor;
+if(snakeShape==="square") ctx.fillRect(s.x*grid,s.y*grid,grid-2,grid-2);
+else if(snakeShape==="circle"){ctx.beginPath();ctx.arc(s.x*grid+grid/2,s.y*grid+grid/2,grid/2-1,0,Math.PI*2);ctx.fill();}
+else if(snakeShape==="rounded"){ctx.fillRect(s.x*grid+2,s.y*grid+2,grid-4,grid-4);ctx.beginPath();ctx.arc(s.x*grid+grid/2,s.y*grid+grid/2,grid/2-4,0,Math.PI*2);ctx.fill();}
+else if(snakeShape==="4d"){ctx.beginPath();ctx.moveTo(s.x*grid+grid/2,s.y*grid);ctx.lineTo(s.x*grid+grid,s.y*grid+grid/2);ctx.lineTo(s.x*grid+grid/2,s.y*grid+grid);ctx.lineTo(s.x*grid,s.y*grid+grid/2);ctx.closePath();ctx.fill();}
+ctx.shadowBlur=0;
+}
+
+function drawFruit(f){
+ctx.shadowColor="#fff";
+ctx.shadowBlur=fruitGlow;
+if(f.type===0){ctx.fillStyle="#f00";ctx.fillRect(f.x*grid,f.y*grid,fruitSize,fruitSize);}
+else if(f.type===1){ctx.fillStyle="#ff0";ctx.beginPath();ctx.arc(f.x*grid+fruitSize/2,f.y*grid+fruitSize/2,fruitSize/2-1,0,Math.PI*2);ctx.fill();}
+else{ctx.fillStyle="#0ff";ctx.fillRect(f.x*grid,f.y*grid,fruitSize,fruitSize);ctx.strokeStyle="#fff";ctx.strokeRect(f.x*grid,f.y*grid,fruitSize,fruitSize);}
+ctx.shadowBlur=0;
+}
+
+function updateParticles(){
+for(let p of particles){p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>w)p.vx*=-1;if(p.y<0||p.y>h)p.vy*=-1;ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,p.size,p.size);}}
+
+function gameLoop(){
+if(!gameRunning) return;
+requestAnimationFrame(gameLoop);
+frame++;
+if(frame<60/speed) return;
+frame=0;
+
+dir=nextDir;
+let head={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
+if(head.x<0) head.x=Math.floor(w/grid)-1;
+if(head.x>=Math.floor(w/grid)) head.x=0;
+if(head.y<0) head.y=Math.floor(h/grid)-1;
+if(head.y>=Math.floor(h/grid)) head.y=0;
+
+for(let s of snake) if(s.x===head.x&&s.y===head.y){gameOver();return;}
+snake.unshift(head);
+
+let ate=false;
+for(let i=0;i<fruits.length;i++){
+if(fruits[i].x===head.x&&fruits[i].y===head.y){
+ate=true;
+let mult=parseInt(document.getElementById('tailMult').value);
+score+=fruits[i].type===0?1:fruits[i].type===1?3:5;
+let extra=(fruits[i].type===2?2:fruits[i].type===1?1:0)*mult;
+for(let j=0;j<extra;j++) snake.push({...snake[snake.length-1]});
+fruits.splice(i,1);spawnFruit();break;}
+}
+if(!ate) snake.pop();
+
+ctx.fillStyle=bgColor;
+ctx.globalAlpha=trailOpacity;
+ctx.fillRect(0,0,w,h);
+ctx.globalAlpha=1;
+updateParticles();
+for(let s=0;s<snake.length;s++) drawSnakePart(snake[s],s);
+for(let f of fruits) drawFruit(f);
+scoreDisplay.textContent="Score: "+score;
+}
+
+function gameOver(){
+gameRunning=false;
+scoreDisplay.style.display='none';
+finalScore.textContent="Score: "+score;
+gameOverMenu.style.display='flex';
+}
+
+document.getElementById('startGame').addEventListener('click',()=>{
+mainMenu.style.display='none';
+resetGame();
+gameLoop();
+});
+
+document.getElementById('openSettings').addEventListener('click',()=>{
+mainMenu.style.display='none';
+settingsMenu.style.display='flex';
+});
+
+document.getElementById('backMenu').addEventListener('click',()=>{
+settingsMenu.style.display='none';
+mainMenu.style.display='flex';
+snakeColor=document.getElementById('snakeColor').value;
+snakeShape=document.getElementById('snakeShape').value;
+joystickSize=parseInt(document.getElementById('joystickSize').value);
+joystick.style.width=joystick.style.height=joystickSize+"px";
+stick.style.width=stick.style.height=joystickSize/3+"px";
+bgColor=document.getElementById('bgColor').value;
+fruitSize=parseInt(document.getElementById('fruitSize').value);
+rareChance=parseInt(document.getElementById('rareChance').value);
+trailOpacity=parseFloat(document.getElementById('trailOpacity').value);
+snakeGlow=parseInt(document.getElementById('snakeGlow').value);
+fruitGlow=parseInt(document.getElementById('fruitGlow').value);
+particleSpeed=parseInt(document.getElementById('particleSpeed').value);
+speed=parseInt(document.getElementById('animSpeed').value);
+scoreDisplay.style.fontSize=document.getElementById('scoreFontSize').value+'px';
+});
+
+document.getElementById('retry').addEventListener('click',()=>{
+gameOverMenu.style.display='none';
+resetGame();
+gameLoop();
+});
+
+document.getElementById('goMenu').addEventListener('click',()=>{
+gameOverMenu.style.display='none';
+mainMenu.style.display='flex';
+});
+
+let active=false,startX=0,startY=0;
+function limitDir(x,y){
+if(Math.abs(x)>Math.abs(y)){if(x>0&&dir.x!==-1) nextDir={x:1,y:0};else if(x<0&&dir.x!==1) nextDir={x:-1,y:0};}
+else{if(y>0&&dir.y!==-1) nextDir={x:0,y:1};else if(y<0&&dir.y!==1) nextDir={x:0,y:-1};}}
+
+joystick.addEventListener('touchstart',e=>{e.preventDefault();active=true;startX=e.touches[0].clientX;startY=e.touches[0].clientY;});
+joystick.addEventListener('touchmove',e=>{
+if(!active) return;
+let tx=e.touches[0].clientX-startX;
+let ty=e.touches[0].clientY-startY;
+let dist=Math.min(joystickSize/2,Math.hypot(tx,ty));
+let angle=Math.atan2(ty,tx);
+stick.style.transform=`translate(${dist*Math.cos(angle)}px,${dist*Math.sin(angle)}px)`;
+limitDir(tx,ty);
+});
+joystick.addEventListener('touchend',e=>{active=false;stick.style.transform='translate(0,0)';});
+
+document.addEventListener('gesturestart',e=>e.preventDefault());
+document.addEventListener('dblclick',e=>e.preventDefault());
+document.addEventListener('touchmove',e=>{if(e.scale!==1)e.preventDefault();},{passive:false});
+
+document.addEventListener('keydown',e=>{
+if(e.key==='ArrowUp'&&dir.y!==1) nextDir={x:0,y:-1};
+if(e.key==='ArrowDown'&&dir.y!==-1) nextDir={x:0,y:1};
+if(e.key==='ArrowLeft'&&dir.x!==1) nextDir={x:-1,y:0};
+if(e.key==='ArrowRight'&&dir.x!==-1) nextDir={x:1,y:0};
+});
+</script>
+</body>
+</html>
