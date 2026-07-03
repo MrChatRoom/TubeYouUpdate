@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>MyTube - Broadcast Yourself</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+<div class="topbar">
+
+  <img src="zupy.png" class="logo-img">
+
+  <div class="nav">
+    <a href="#">Home</a>
+    <a href="#">Videos</a>
+    <a href="#">Channels</a>
+    <a href="#">Community</a>
+  </div>
+
+  <div class="login">
+    <input placeholder="username">
+    <input placeholder="password" type="password">
+    <button>login</button>
+  </div>
+
+</div>
+
+<div class="searchbar">
+  <input placeholder="Search MyTube">
+  <button>Search</button>
+</div>
+
+<div class="page">
+
+  <div class="left">
+
+    <div id="player" class="player">
+      CLICK A VIDEO TO START
+    </div>
+
+    <div class="rating">
+      Rating:
+      <span>★★★★★</span>
+    </div>
+
+    <div class="views">
+      views: <span id="viewCount">0</span>
+    </div>
+
+    <div class="chatbox">
+      <div class="chat-title">LIVE CHAT</div>
+      <div id="chat" class="chat"></div>
+
+      <!-- SECRET COMMAND INPUT -->
+      <input id="secret" class="secret" placeholder="chat..." oninput="checkSecret(this.value)">
+    </div>
+
+  </div>
+
+  <div class="right">
+
+    <div class="box">
+      <div class="title">Categories</div>
+      <div>GLORY</div>
+      <div>ZUPY</div>
+      <div>PRAYER</div>
+      <div>CHAOS</div>
+    </div>
+
+    <div class="box">
+      <div class="title">Featured</div>
+
+      <div class="video" onclick="loadVideo('alt1')">
+        ▶ Altgame1
+      </div>
+
+      <div class="video" onclick="loadVideo('alt2')">
+        ▶ Altgame2
+      </div>
+
+      <div class="video" onclick="loadVideo('alt3')">
+        ▶ Altgame3
+      </div>
+
+      <div class="video" onclick="loadVideo('alt4')">
+        ▶ Altgame4
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
